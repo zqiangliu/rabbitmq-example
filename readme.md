@@ -1,3 +1,6 @@
+### 安装插件（windows版本）
+F:\softs\rabbitmq\rabbitmq_server-3.8.5\sbin> rabbitmq-plugins.bat enable rabbitmq_management
+F:\softs\rabbitmq\rabbitmq_server-3.8.5\sbin> rabbitmq‐plugins enable rabbitmq_web_stomp
 ### Spring集成Rabbitmq
 ```
 <dependency>
@@ -128,4 +131,26 @@ public class RabbitAdminExample {
 
     }
 }
+```
+
+### 使用Stomp.js连接rabbitmq
+```
+<script th:src="@{/static/stomp.min.js}"></script>
+    <script>
+        var client = Stomp.client('ws://127.0.0.1:15674/ws');
+        /*
+         fanout模式 /exchange/fanout-web (需要手动创建exchange，会自动对每个消费者生成一个queue)
+         direct模式 /queue/queue-web (会自动创建queue)
+          */
+        var topic = "/exchange/fanout-web";
+        var on_connect = function(x) {
+            id = client.subscribe(topic, function(d) {
+                alert(d.body);
+            });
+        };
+        var on_error = function() {
+            console.log('error');
+        };
+        client.connect('webguest', 'webguest', on_connect, on_error, '/web');
+    </script>
 ```
