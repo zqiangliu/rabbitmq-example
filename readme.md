@@ -133,6 +133,54 @@ public class RabbitAdminExample {
 }
 ```
 
+### 实现延时消息
+通过设置队列的ttl时间和死信exchange可以实现延时消息
+* x-message-ttl: 超时时间，单位：毫秒
+* x-dead-letter-exchange: 死信消息exchange
+* x-dead-letter-routing-key: 死信消息exchange绑定的queue
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/rabbit
+        http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+
+    <rabbit:connection-factory id="connectionFactory" host="127.0.0.1" virtual-host="/" port="5672" username="guest" password="guest" />
+
+    <rabbit:template id="rabbitTemplate" connection-factory="connectionFactory" />
+
+    <!--死信队列-->
+    <rabbit:queue name="dead-letter-queue" auto-declare="true"/>
+    <!--死信exchange 同时将死信队列绑定到exchange-->
+    <rabbit:fanout-exchange name="dead-letter-exchange" auto-declare="true">
+        <rabbit:bindings>
+            <rabbit:binding queue="dead-letter-queue" />
+        </rabbit:bindings>
+    </rabbit:fanout-exchange>
+
+    <!--设置消息队列超时和死信exchange-->
+    <rabbit:queue id="ttl-queue" name="ttl-queue" auto-declare="true" >
+        <rabbit:queue-arguments>
+            <entry key="x-message-ttl" value="5000" value-type="long"/>
+            <entry key="x-dead-letter-exchange" value="dead-letter-exchange"/>
+            <entry key="x-dead-letter-routing-key" value=""/>
+        </rabbit:queue-arguments>
+    </rabbit:queue>
+
+    <bean id="consumer1" class="com.demos.ttl.MessageConsumer"/>
+    <bean id="consumer2" class="com.demos.ttl.DeadMessageConsumer"/>
+
+    <rabbit:listener-container connection-factory="connectionFactory">
+        <rabbit:listener ref="consumer1" queue-names="ttl-queue"/> <!--去掉这一行可以测试死信消息-->
+        <rabbit:listener ref="consumer2" queue-names="dead-letter-queue"/>
+    </rabbit:listener-container>
+
+</beans>
+```
+
 ### 使用Stomp.js连接rabbitmq
 ```
 <script th:src="@{/static/stomp.min.js}"></script>
