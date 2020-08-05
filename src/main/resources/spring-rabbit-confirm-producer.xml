@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/rabbit
+        http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+    <!--
+    publisher-confirms="true" 开启发送确认
+    publisher-returns="true" 开启发送退回
+    -->
+    <rabbit:connection-factory
+            id="connectionFactory"
+            host="127.0.0.1"
+            port="5672"
+            username="guest"
+            password="guest"
+            publisher-confirms="true"
+            publisher-returns="true"/>
+
+    <bean id="rabbitReturnCallback" class="com.demos.confirm.callback.RabbitReturnCallback"/>
+    <bean id="rabbitConfirmCallback" class="com.demos.confirm.callback.RabbitConfirmCallback"/>
+
+    <!--
+    mandatory="true" 消息发送失败返回队列（可以发送到一个不存在的routingKey来测试）
+    return-callback="rabbitReturnCallback" 消息退回回调
+    confirm-callback="rabbitConfirmCallback" 消息到达exchange确认回调
+    -->
+    <rabbit:template
+            id="rabbitTemplate"
+            connection-factory="connectionFactory"
+            mandatory="true"
+    return-callback="rabbitReturnCallback"
+    confirm-callback="rabbitConfirmCallback"/>
+
+</beans>

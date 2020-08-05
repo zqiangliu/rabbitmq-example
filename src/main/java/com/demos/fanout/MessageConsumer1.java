@@ -5,7 +5,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 
 public class MessageConsumer1 implements MessageListener {
     public void onMessage(Message message) {
-        System.out.println("MessageConsumer1接收到消息：" + new String(message.getBody())
-        );
+        System.out.println("MessageConsumer1接收到消息：" + new String(message.getBody()));
     }
 }

@@ -181,6 +181,96 @@ public class RabbitAdminExample {
 </beans>
 ```
 
+### 消息确认
+开启发送确认配置
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/rabbit
+        http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+    <!--
+    publisher-confirms="true" 开启发送确认
+    publisher-returns="true" 开启发送退回
+    -->
+    <rabbit:connection-factory
+            id="connectionFactory"
+            host="127.0.0.1"
+            port="5672"
+            username="guest"
+            password="guest"
+            publisher-confirms="true"
+            publisher-returns="true"/> 
+
+    <bean id="rabbitReturnCallback" class="com.demos.confirm.callback.RabbitReturnCallback"/>
+    <bean id="rabbitConfirmCallback" class="com.demos.confirm.callback.RabbitConfirmCallback"/>
+
+    <!--
+    mandatory="true" 消息发送失败返回队列（可以发送到一个不存在的routingKey来测试）
+    return-callback="rabbitReturnCallback" 消息退回回调
+    confirm-callback="rabbitConfirmCallback" 消息到达exchange确认回调
+    -->
+    <rabbit:template
+            id="rabbitTemplate"
+            connection-factory="connectionFactory"
+            mandatory="true"
+    return-callback="rabbitReturnCallback"
+    confirm-callback="rabbitConfirmCallback"/>
+
+</beans>
+```
+
+开启消费手动确认配置
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/rabbit
+        http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+    <rabbit:connection-factory 
+            id="connectionFactory" 
+            host="127.0.0.1" 
+            port="5672" 
+            username="guest" 
+            password="guest"/>
+
+    <rabbit:queue name="queue.test" />
+
+    <bean id="messageConsumer" class="com.demos.confirm.ConfirmedConsumer"/>
+
+    <!--acknowledge="manual"手动确认-->
+    <rabbit:listener-container connection-factory="connectionFactory" acknowledge="manual">
+        <rabbit:listener queue-names="queue.test" ref="messageConsumer" />
+    </rabbit:listener-container>
+</beans>
+```
+手动确认
+```java
+public class ConfirmedConsumer implements ChannelAwareMessageListener {
+    @Override
+    public void onMessage(Message message, Channel channel) throws Exception {
+        System.out.println("ConfirmedConsumer接收到消息：" + new String(message.getBody()));
+        //手动确认
+        Random rand = new Random();
+        int i = rand.nextInt(10);
+        if(i < 5){
+            //否定消息，requeue=true重写添加到队列，重新消费
+            System.out.println("nack");
+            channel.basicNack(message.getMessageProperties().getDeliveryTag(), false, true);
+        }else{
+            System.out.println("ack");
+            channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
+        }
+    }
+}
+```
+
 ### 使用Stomp.js连接rabbitmq
 ```
 <script th:src="@{/static/stomp.min.js}"></script>
